@@ -1,0 +1,20 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="90" fill="#22C55E" opacity="0.1"/>
+
+  <!-- Graduation cap -->
+  <rect x="70" y="95" width="60" height="8" rx="4" fill="#22C55E"/>
+  <circle cx="100" cy="99" r="25" fill="#22C55E" opacity="0.3"/>
+  <rect x="85" y="85" width="30" height="20" rx="4" fill="#22C55E" opacity="0.6"/>
+
+  <!-- Stars around -->
+  <g fill="#22C55E">
+    <path d="M60 70L62 76L68 76L63 80L65 86L60 82L55 86L57 80L52 76L58 76L60 70Z"/>
+    <path d="M140 60L142 66L148 66L143 70L145 76L140 72L135 76L137 70L132 66L138 66L140 60Z"/>
+    <path d="M140 130L142 136L148 136L143 140L145 146L140 142L135 146L137 140L132 136L138 136L140 130Z"/>
+    <path d="M60 140L62 146L68 146L63 150L65 156L60 152L55 156L57 150L52 146L58 146L60 140Z"/>
+  </g>
+
+  <!-- Percentage -->
+  <text x="100" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#22C55E">95%</text>
+  <text x="100" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#22C55E">MATCH</text>
+</svg>
