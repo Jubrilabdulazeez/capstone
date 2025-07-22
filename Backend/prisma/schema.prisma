@@ -1,0 +1,431 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js Models
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// User Management
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  firstName     String?
+  lastName      String?
+  phoneNumber   String?
+  dateOfBirth   DateTime?
+  gender        Gender?
+  nationality   String?
+  state         String?
+  city          String?
+  address       String?
+  password      String?   // For counselors and direct auth
+  requirePasswordChange Boolean @default(false) // Force password change on first login
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  verified      Boolean   @default(false)
+  role          Role      @default(STUDENT)
+
+  // Relations
+  accounts             Account[]
+  sessions             Session[]
+  qualifications       Qualification[]
+  languageProficiencies LanguageProficiency[]
+  studyPreferences     StudyPreferences?
+  savedUniversityIds   String[]           @db.ObjectId
+  applications         Application[]
+  counselingSessions   CounselingSession[]
+
+  // Saved universities relation
+  savedUniversities University[] @relation("SavedUniversities", fields: [savedUniversityIds], references: [id])
+}
+
+// Academic Information
+model Qualification {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  type          QualificationType
+  institution   String
+  yearCompleted Int
+  subjects      SubjectGrade[]
+  certificate   String?       // URL to uploaded certificate
+  userId        String        @db.ObjectId
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LanguageProficiency {
+  id            String            @id @default(auto()) @map("_id") @db.ObjectId
+  language      String
+  level         LanguageLevel
+  certification String?
+  score         String?
+  userId        String            @db.ObjectId
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StudyPreferences {
+  id                       String   @id @default(auto()) @map("_id") @db.ObjectId
+  fieldsOfInterest         FieldOfInterest[]
+  preferredCountries       PreferredCountry[]
+  preferredDegreeTypes     DegreeType[]
+  preferredLanguages       String[]
+  budgetMin                Float
+  budgetMax                Float
+  accommodationPreference  AccommodationPreference
+  startDate                StartDatePreference
+  studyMode                StudyMode
+  scholarshipRequired      Boolean
+  userId                   String   @unique @db.ObjectId
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// University System
+model University {
+  id                               String      @id @default(auto()) @map("_id") @db.ObjectId
+  name                             String
+  country                          String
+  city                             String
+  logo                             String?
+  images                           String[]
+  description                      String
+  website                          String
+  foundedYear                      Int
+  type                             UniversityType
+  accreditation                    String[]
+  ranking                          UniversityRanking
+  rankingScore                     Int?
+  studentsCount                    Int
+  nigerianStudentsCount            Int
+  internationalStudentsPercentage  Float
+  acceptanceRate                   Float
+  averageTuition                   Float
+  tuitionMin                       Float
+  tuitionMax                       Float
+  languagesOfInstruction           String[]
+  accommodationAvailable           Boolean
+  accommodationCostMin             Float?
+  accommodationCostMax             Float?
+  admissionRequirementsGeneral     String
+  admissionRequirementsInternational String
+  admissionRequirementsNigerian    String
+  admissionDeadlinesFall           String
+  admissionDeadlinesSpring         String?
+  admissionDeadlinesWinter         String?
+  admissionDeadlinesSummer         String?
+  contactEmail                     String
+  contactPhone                     String
+  contactAddress                   String
+  facilitiesAndServices            String[]
+  strengths                        String[]
+  virtualTour                      String?
+  isActive                         Boolean   @default(true)
+  createdAt                        DateTime  @default(now())
+  updatedAt                        DateTime  @updatedAt
+
+  // Relations
+  programs     Program[]
+  scholarships Scholarship[]
+  applications Application[]
+  savedByUsers User[]        @relation("SavedUniversities", fields: [savedByUserIds], references: [id])
+  savedByUserIds String[]    @db.ObjectId
+}
+
+model Program {
+  id               String      @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  degreeType       DegreeType
+  durationYears    Int
+  annualTuition    Float
+  currency         String      @default("USD")
+  language         String
+  hasScholarship   Boolean
+  entryRequirements String
+  description      String
+  isActive         Boolean     @default(true)
+  universityId     String      @db.ObjectId
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  university   University    @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  applications Application[]
+}
+
+model Scholarship {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  description        String
+  coverage           ScholarshipCoverage
+  coverageDetails    String
+  eligibilityCriteria String
+  applicationDeadline String
+  link               String?
+  isActive           Boolean  @default(true)
+  universityId       String   @db.ObjectId
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+}
+
+// Application System
+model Application {
+  id             String            @id @default(auto()) @map("_id") @db.ObjectId
+  universityId   String            @db.ObjectId
+  universityName String
+  programId      String            @db.ObjectId
+  programName    String
+  status         ApplicationStatus @default(PREPARING)
+  applicationDate DateTime         @default(now())
+  lastUpdated    DateTime          @updatedAt
+  notes          String?
+  documents      ApplicationDocument[]
+  timeline       ApplicationTimeline[]
+  userId         String            @db.ObjectId
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  program    Program    @relation(fields: [programId], references: [id], onDelete: Cascade)
+}
+
+// Counseling System
+model CounselingSession {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  counselorId  String
+  counselorName String
+  date         DateTime
+  duration     Int           // in minutes
+  type         SessionType
+  status       SessionStatus @default(SCHEDULED)
+  notes        String?
+  rating       Int?          // 1-5 scale
+  feedback     String?
+  amount       Float?        // payment amount
+  currency     String?       @default("USD")
+  paymentIntentId String?    // Stripe payment intent ID
+  userId       String        @db.ObjectId
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Embedded Types (MongoDB specific)
+type SubjectGrade {
+  subject String
+  grade   String
+}
+
+type ApplicationDocument {
+  name   String
+  status DocumentStatus
+  url    String?
+}
+
+type ApplicationTimeline {
+  date   DateTime
+  status ApplicationStatus
+  notes  String?
+}
+
+// Enums
+enum Role {
+  STUDENT
+  ADMIN
+  COUNSELOR
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  PREFER_NOT_TO_SAY
+  OTHER
+}
+
+enum QualificationType {
+  WAEC
+  NECO
+  IGCSE
+  A_LEVELS
+  IB
+  NIGERIAN_DIPLOMA
+  NIGERIAN_DEGREE
+  OTHER
+}
+
+enum LanguageLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  NATIVE
+  CERTIFIED
+}
+
+enum FieldOfInterest {
+  BUSINESS_MANAGEMENT
+  ENGINEERING_TECHNOLOGY
+  MEDICINE_HEALTH_SCIENCES
+  ARTS_HUMANITIES
+  NATURAL_SCIENCES
+  SOCIAL_SCIENCES
+  COMPUTER_SCIENCE_IT
+  EDUCATION
+  LAW
+  AGRICULTURE_ENVIRONMENTAL_SCIENCES
+  MEDIA_COMMUNICATIONS
+  ARCHITECTURE_CONSTRUCTION
+  OTHER
+}
+
+enum PreferredCountry {
+  GHANA
+  SOUTH_AFRICA
+  KENYA
+  RWANDA
+  EGYPT
+  MOROCCO
+  TANZANIA
+  UGANDA
+  BOTSWANA
+  NAMIBIA
+  SENEGAL
+  ETHIOPIA
+  ANY
+}
+
+enum AccommodationPreference {
+  REQUIRED
+  NOT_REQUIRED
+  NO_PREFERENCE
+}
+
+enum StartDatePreference {
+  IMMEDIATE
+  NEXT_3_MONTHS
+  NEXT_6_MONTHS
+  NEXT_YEAR
+  FLEXIBLE
+}
+
+enum StudyMode {
+  FULL_TIME
+  PART_TIME
+  ONLINE
+  HYBRID
+  NO_PREFERENCE
+}
+
+enum UniversityType {
+  PUBLIC
+  PRIVATE
+  MIXED
+}
+
+enum UniversityRanking {
+  A_PLUS     @map("A+")
+  A
+  B_PLUS     @map("B+")
+  B
+  C_PLUS     @map("C+")
+  C
+  NOT_RANKED
+}
+
+enum DegreeType {
+  BACHELOR
+  MASTER
+  PHD
+  DIPLOMA
+  CERTIFICATE
+}
+
+enum ScholarshipCoverage {
+  FULL
+  PARTIAL
+  SPECIFIC
+}
+
+enum ApplicationStatus {
+  PREPARING
+  SUBMITTED
+  DOCUMENTS_REQUESTED
+  UNDER_REVIEW
+  INTERVIEW_SCHEDULED
+  APPROVED
+  CONDITIONAL_APPROVAL
+  REJECTED
+  DEFERRED
+}
+
+enum DocumentStatus {
+  REQUIRED
+  UPLOADED
+  APPROVED
+  REJECTED
+}
+
+enum SessionType {
+  VIDEO
+  AUDIO
+  CHAT
+}
+
+enum SessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  MISSED
+}

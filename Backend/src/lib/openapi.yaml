@@ -1,0 +1,659 @@
+openapi: 3.0.3
+info:
+  title: EduConnect Africa API
+  description: Backend API for EduConnect Africa - connecting Nigerian students with African universities
+  version: 1.0.0
+  contact:
+    name: EduConnect Africa
+    email: support@educonnect-africa.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Development server
+  - url: https://api.educonnect-africa.com
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - SessionAuth: []
+
+paths:
+  /api/auth/signin:
+    get:
+      tags:
+        - Authentication
+      summary: Get sign-in page
+      description: NextAuth.js sign-in page endpoint
+      responses:
+        '200':
+          description: Sign-in page HTML
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/session:
+    get:
+      tags:
+        - Authentication
+      summary: Get current session
+      description: Retrieve the current user session information
+      responses:
+        '200':
+          description: Current session information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/create-payment-intent:
+    post:
+      tags:
+        - Payments
+      summary: Create payment intent
+      description: Create a Stripe payment intent for counseling session booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentIntentRequest'
+      responses:
+        '200':
+          description: Payment intent created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntentResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/universities:
+    get:
+      tags:
+        - Universities
+      summary: Get all universities
+      description: Retrieve a list of all universities with optional filtering
+      parameters:
+        - name: country
+          in: query
+          description: Filter by country
+          schema:
+            type: string
+            example: "Ghana"
+        - name: ranking
+          in: query
+          description: Filter by ranking
+          schema:
+            type: string
+            enum: [A+, A, B+, B, C+, C]
+        - name: limit
+          in: query
+          description: Limit number of results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Offset for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of universities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  universities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/University'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Universities
+      summary: Create new university
+      description: Add a new university to the database (Admin only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UniversityCreateRequest'
+      responses:
+        '201':
+          description: University created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/University'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/universities/{id}:
+    get:
+      tags:
+        - Universities
+      summary: Get university by ID
+      description: Retrieve detailed information about a specific university
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: University ID
+          schema:
+            type: string
+            example: "univ-001"
+      responses:
+        '200':
+          description: University details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/University'
+        '404':
+          description: University not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Retrieve the current user's profile information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Update the current user's profile information
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+      required:
+        - error
+
+    Session:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+              format: email
+            name:
+              type: string
+            role:
+              type: string
+              enum: [student, counselor, admin]
+            image:
+              type: string
+              format: uri
+        expires:
+          type: string
+          format: date-time
+
+    PaymentIntentRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          description: Amount in USD cents
+          example: 5000
+        currency:
+          type: string
+          description: Currency code
+          example: "usd"
+        counselorId:
+          type: string
+          description: ID of the counselor
+        sessionType:
+          type: string
+          description: Type of counseling session
+        studentEmail:
+          type: string
+          format: email
+          description: Student's email
+        metadata:
+          type: object
+          description: Additional metadata
+      required:
+        - amount
+        - currency
+        - counselorId
+        - sessionType
+        - studentEmail
+
+    PaymentIntentResponse:
+      type: object
+      properties:
+        clientSecret:
+          type: string
+          description: Stripe client secret for completing payment
+        paymentIntentId:
+          type: string
+          description: Stripe payment intent ID
+      required:
+        - clientSecret
+
+    University:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "univ-001"
+        name:
+          type: string
+          example: "University of Ghana"
+        country:
+          type: string
+          example: "Ghana"
+        city:
+          type: string
+          example: "Accra"
+        logo:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+        foundedYear:
+          type: integer
+          example: 1948
+        type:
+          type: string
+          enum: [Public, Private, Mixed]
+        accreditation:
+          type: array
+          items:
+            type: string
+        ranking:
+          type: string
+          enum: [A+, A, B+, B, C+, C, Not Ranked]
+        rankingScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+        studentsCount:
+          type: integer
+        nigerianStudentsCount:
+          type: integer
+        internationalStudentsPercentage:
+          type: number
+          minimum: 0
+          maximum: 1
+        acceptanceRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        averageTuition:
+          type: number
+          description: Average annual tuition in USD
+        tuitionRange:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+        languagesOfInstruction:
+          type: array
+          items:
+            type: string
+        accommodationAvailable:
+          type: boolean
+        accommodationCost:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+        programs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Program'
+        scholarships:
+          type: array
+          items:
+            $ref: '#/components/schemas/Scholarship'
+        admissionRequirements:
+          type: object
+          properties:
+            general:
+              type: string
+            international:
+              type: string
+            nigerian:
+              type: string
+        admissionDeadlines:
+          type: object
+          properties:
+            fall:
+              type: string
+            spring:
+              type: string
+            winter:
+              type: string
+            summer:
+              type: string
+        contactInfo:
+          type: object
+          properties:
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+            address:
+              type: string
+        facilitiesAndServices:
+          type: array
+          items:
+            type: string
+        strengths:
+          type: array
+          items:
+            type: string
+        virtualTour:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Program:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        degreeType:
+          type: string
+          enum: [Bachelor, Master, PhD, Diploma, Certificate]
+        durationYears:
+          type: integer
+        annualTuition:
+          type: number
+        currency:
+          type: string
+        language:
+          type: string
+        hasScholarship:
+          type: boolean
+        entryRequirements:
+          type: string
+        description:
+          type: string
+
+    Scholarship:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        coverage:
+          type: string
+          enum: [Full, Partial, Specific]
+        coverageDetails:
+          type: string
+        eligibilityCriteria:
+          type: string
+        applicationDeadline:
+          type: string
+        link:
+          type: string
+          format: uri
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        profilePicture:
+          type: string
+          format: uri
+        phoneNumber:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [Male, Female, "Prefer not to say", Other]
+        nationality:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        verified:
+          type: boolean
+        role:
+          type: string
+          enum: [Student, Admin, Counselor]
+        createdAt:
+          type: string
+          format: date-time
+
+    UniversityCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        description:
+          type: string
+        website:
+          type: string
+          format: uri
+        foundedYear:
+          type: integer
+        type:
+          type: string
+          enum: [Public, Private, Mixed]
+      required:
+        - name
+        - country
+        - city
+        - description
+        - website
+        - foundedYear
+        - type
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phoneNumber:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [Male, Female, "Prefer not to say", Other]
+        nationality:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Payments
+    description: Payment processing for counseling sessions
+  - name: Universities
+    description: University information and management
+  - name: Users
+    description: User profile management
